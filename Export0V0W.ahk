@@ -1,7 +1,7 @@
 secondsTip:=1
 SetdefaultMouseSpeed 2
 stringbCAD:="bCAD"
-Stringbcadexe:="b[cC][aA][dD]\.4.ex*"
+Stringbcadexe:="b[cC][aA][dD]\.*"
 stringbCADtire:="bCAD -"
 XImage:=0
 YImage:=0
@@ -64,10 +64,27 @@ SetTitleMatchMode, RegEx
 ;~ if (ErrorLevel)
 	;~ MsgBox,%ErrorLevel%
 ;~ ExitApp
-
-IfWinExist, ahk_exe %Stringbcadexe%
+IDproba:=WinExist("ahk_exe" Stringbcadexe)
+if (IDproba=0)
 {
-	ToolTip, bCAD найден
+	alternateStringbcadexe:="BCAD4~1.EX*"
+	IDproba:=WinExist("ahk_exe" alternateStringbcadexe)
+	if (IDproba=0)
+	{
+		;MsgBox, bCAD не запущен
+	}
+	else
+	{
+		Stringbcadexe:=alternateStringbcadexe
+	}
+}
+;MsgBox, IDproba %IDproba%
+
+If (IDproba)
+{
+	Send, {LWin}
+	Send, {LWin}
+	ToolTip, Старт экспорта
 	;начало поиска окон Excel (чтобы вычислить максимальный индекс в имени "Книга ")
 	maxNumberExcel:=0
 	SetTitleMatchMode, RegEx
@@ -151,7 +168,7 @@ IfWinExist, ahk_exe %Stringbcadexe%
 		}
 	}
 	
-	
+	SetTitleMatchMode, RegEx
 ZavershenaProverkaPervogoOknaExcel:
 	;~ if (tempNumberExcel<>0)
 		;~ maxNumberExcel:=tempNumberExcel
@@ -162,37 +179,63 @@ ZavershenaProverkaPervogoOknaExcel:
 	;ExcelSmetaWindowName:=findstring1 maxNumberExcel
 	maxNumberExcelOtchet:=maxNumberExcel+1
 	ExcelOtchetKonstruktoraName:=findstring1 maxNumberExcelOtchet
-	
-	SetTitleMatchMode, RegEx
-	WinActivate, ahk_exe %Stringbcadexe%
+	WinGet, probaIDbCAD, ID, ahk_exe %Stringbcadexe%
+	;MsgBox, %probaIDbCAD%
+	IDactive:=WinExist("A")
+	if (probaIDbCAD<>IDactive)
+	{
+		ToolTip, Активируем bCAD
+		WinActivate, ahk_exe %Stringbcadexe%
+	}
+	else
+	{
+		ToolTip, bCAD активен
+	}
+	WinGetActiveStats, Title, Width, Height, X, Y
+	Click, %X% %Y% 0
 	;получаем ID окна, чтобы было проще работать с ним
 	WinGet, IDbCAD, ID, ahk_exe %Stringbcadexe%
-	if (!IDbCAD)
-		MsgBox, Не найден %IDbCAD%
-	SetTitleMatchMode, %MatchMode%
-	SetTitleMatchMode, Slow
+	;~ if (!IDbCAD)
+		;~ MsgBox, Не найден %IDbCAD%
+	IDactive:=WinExist("A")
+	;~ if (IDactive=probaIDbCAD)
+		;~ MsgBox, odinakovi
+	;~ else
+		;~ MsgBox, net
+	;~ SetTitleMatchMode, %MatchMode%
+	;~ SetTitleMatchMode, Slow
 	;экспорт сметы
-	errorfirst:=false
-	Sleep, 200
-	Send, {Alt}
+	errorfirst:=0
+	Sleep, 500
 Probuemeshe:
-	Sleep,200
+	if (probaIDbCAD<>IDactive)
+	{
+		ToolTip, Активируем bCAD
+		WinActivate, ahk_id %probaIDbCAD%
+	}
+	WinActivate, ahk_id %probaIDbCAD%
+	SendInput, {Alt}
+	;ToolTip, ControlSend1
+	;ControlSend, , {Alt}, ahk_exe %Stringbcadexe%
+	Sleep,500
 	ToolTip, посылаем 0v
-	Send,0v
+	SendInput,0v
 	SetTitleMatchMode, 1
+	SetTitleMatchMode, Slow
 	titleWait:="Тип объектов"
-	WinWait, %titleWait%,,1
+	WinWait, %titleWait%,,2
 	If (ErrorLevel)
 		ToolTip, посылаем м
-		Send, м
+		SendInput, м
 	WinWait, %titleWait%,,%waittimewindow10%
 	If (ErrorLevel)
 	{
-		if (errorfirst=false)
+		if (errorfirst<10)
 		{
-			errorfirst:=true
-			Send, 0
+			errorfirst++
+			;SendInput, 0
 ;			MsgBox, ololo
+			Sleep,	100
 			Goto Probuemeshe
 		}
 		else
@@ -207,7 +250,7 @@ Probuemeshe:
 	;WindowsForms10.BUTTON.app.0.33c0d9d6 ;только видимые
 	;ControlSend,%controlNeed%,{Space},%titleWait%
 	ControlFocus,%controlNeed%,%titleWait%
-	Send, {Space}
+	SendInput, {Space}
 	sleep, waittime
 	;ControlGetFocus,currentFocus,A
 	;if (currentFocus=controlNeed)
@@ -215,7 +258,7 @@ Probuemeshe:
 	controlNeed:="WindowsForms10.BUTTON.app.0.33c0d9d3" ;Кнопка Ок в диалоге перед Сметой
 	;ControlSend,%controlNeed%,{Enter},%titleWait%
 	ControlFocus,%controlNeed%,%titleWait%
-	Send, {Space}
+	SendInput, {Space}
 	;ждём окно Смета
 	titleWindowWait:="Смета"
 	SetTitleMatchMode, 1
@@ -315,14 +358,14 @@ PovtorControlSend:
 	;MsgBox,Экспорт отчёта
 	ToolTip, Экспортируем отчётКонструктора
 	;экспорт отчёта конструктора
-	Send, {Alt}
+	SendInput, {Alt}
 	Sleep,200
-	Send,0w
+	SendInput,0w
 	SetTitleMatchMode, 1
 	titleWait:="Тип объектов"
 	WinWait, %titleWait%,,1
 	If (ErrorLevel)
-		Send, ц
+		SendInput, ц
 	WinWait, %titleWait%,,%waittimewindow1%
 	If (ErrorLevel)
 	{
@@ -354,20 +397,32 @@ PovtorControlSend:
 	ToolTip, Ждём экспорт Excel
 	;в этом же окне нажимаем кнопку Экспорт в эксель
 	WinActivate, %titleWindowWait%
-	
-	controlNeed:="WindowsForms10.BUTTON.app.0.33c0d9d6" ;кнопка "Экспорт в эксель"
-	ControlFocus, %controlNeed%, %titleWindowWait%
 	Sleep, waittime
+	controlNeed:="WindowsForms10.BUTTON.app.0.33c0d9d6" ;кнопка "Экспорт в эксель"
+	cou1:=0
+ProbuemVigruzitOtchetKonstruktora:
+	ControlFocus, %controlNeed%, %titleWindowWait%
 	if (ErrorLevel=1)
 	{
 		ControlGetText, OutputVar1,%controlNeed%
-		MsgBox, Some problem with: %OutputVar1% (%controlNeed%) in Window %titleWindowWait%
-		Exit
+		;MsgBox, Some problem with: %OutputVar1% (%controlNeed%) in Window %titleWindowWait%
+		;Exit
 	}
 	Sleep, waittime
-	ControlSend, %controlNeed%, {Enter}, %titleWindowWait%
+	ControlSend, %controlNeed%, {Space}, %titleWindowWait%
+	if (ErrorLevel)
+	{
+		ToolTip, Проба экспорта %cou1%
+		if (cou1>20)
+		{
+			MsgBox, Проблема с кнопкой экспорта Отчёта конструктора в Excel. Можете попробовать выгрузить вручную. Если проблема повторяется, свяжитесь с разработчиком, чтобы допилил это
+		}
+		Sleep, 100
+		cou1++
+		GoTo ProbuemVigruzitOtchetKonstruktora
+	}
 	;SendInput, {Enter}
-	Sleep, 2000 ;sswww
+	Sleep, 1000 ;sswww
 	
 	SetTitleMatchMode, 1
 	SetTitleMatchMode, Slow
