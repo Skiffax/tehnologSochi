@@ -1,7 +1,7 @@
 secondsTip:=1
 SetdefaultMouseSpeed 2
 stringbCAD:="bCAD"
-Stringbcadexe:="b[cC][aA][dD]\.*"
+Stringbcadexe:="b[cC][aA][dD]\.4.ex*"
 stringbCADtire:="bCAD -"
 XImage:=0
 YImage:=0
@@ -67,7 +67,7 @@ SetTitleMatchMode, RegEx
 
 IfWinExist, ahk_exe %Stringbcadexe%
 {
-	
+	ToolTip, bCAD найден
 	;начало поиска окон Excel (чтобы вычислить максимальный индекс в имени "Книга ")
 	maxNumberExcel:=0
 	SetTitleMatchMode, RegEx
@@ -163,26 +163,27 @@ ZavershenaProverkaPervogoOknaExcel:
 	maxNumberExcelOtchet:=maxNumberExcel+1
 	ExcelOtchetKonstruktoraName:=findstring1 maxNumberExcelOtchet
 	
-	
-	
-	
 	SetTitleMatchMode, RegEx
 	WinActivate, ahk_exe %Stringbcadexe%
 	;получаем ID окна, чтобы было проще работать с ним
 	WinGet, IDbCAD, ID, ahk_exe %Stringbcadexe%
+	if (!IDbCAD)
+		MsgBox, Не найден %IDbCAD%
 	SetTitleMatchMode, %MatchMode%
 	SetTitleMatchMode, Slow
 	;экспорт сметы
 	errorfirst:=false
-
+	Sleep, 200
 	Send, {Alt}
 Probuemeshe:
 	Sleep,200
+	ToolTip, посылаем 0v
 	Send,0v
 	SetTitleMatchMode, 1
 	titleWait:="Тип объектов"
 	WinWait, %titleWait%,,1
 	If (ErrorLevel)
+		ToolTip, посылаем м
 		Send, м
 	WinWait, %titleWait%,,%waittimewindow10%
 	If (ErrorLevel)
@@ -196,7 +197,9 @@ Probuemeshe:
 		}
 		else
 		{
+			ToolTip, Запуск Сметы не удался
 			MsgBox, Какая-то проблема с окном %titleWait%. Прерываем выполнение
+			SetTimer, RemoveToolTip, -1000
 			ExitApp
 		}
 	}
@@ -216,14 +219,20 @@ Probuemeshe:
 	;ждём окно Смета
 	titleWindowWait:="Смета"
 	SetTitleMatchMode, 1
-	ToolTip, Ждём появления окна Excel
+	ToolTip, Ждём появления окна Смета
 	WinWaitClose,%titleWait%,,waittimewindow1
-	WinWait,%titleWindowWait%,,waittimewindow1
+	classSmeta:="WindowsForms10.Window.8.app.0.33c0d9d"
+	WinWait,%titleWindowWait% ahk_class %classSmeta%,,waittimewindow1
 	if ErrorLevel
 	{
 		MsgBox, Скрипт не дождался окна %titleWindowWait%. Попробуйте запустить окно %titleWindowWait% вручную и затем нажать кнопку ОК в этом сообщении
 	}
-	IDSmeta:=WinExist("A")
+	IDSmeta:=WinExist(titleWindowWait "ahk_class" classSmeta)
+	ToolTip, Ждём появления окна Excel
+	WinGetClass, OutputVar1, ahk_id %IDSmeta%
+	WinGetTitle, titleWindowActive, ahk_id %IDSmeta%
+	;MsgBox, %IDSmeta% %OutputVar1% %titleWindowActive%
+	;"WindowsForms10.Window.8.app.0.33c0d9d" ;component class
 	Sleep, 100
 	controlNeed:="WindowsForms10.BUTTON.app.0.33c0d9d3" ;кнопка "Экспорт в эксель в диалоге сметы"
 	;SetTitleMatchMode, 2
@@ -238,20 +247,22 @@ PovtorControlSend:
 	;WinActivate, ahk_id %IDSmeta%
 	;WinActivate, ahk_id %IDbCAD% 
 	;ControlSend, %controlNeed%, {Space}, ahk_id %IDSmeta%
-	ControlSend, %controlNeed%, {Space}, A
+	ControlSend, %controlNeed%, {Space}, ahk_id %IDbCAD%
+	;ControlSend, %controlNeed%, {Space}, A
 	if (ErrorLevel)
 	{
 		;MsgBox, ErrorControlSend ExportSmetabCADtoExcel
 		ControlFocus, %controlNeed%, ahk_id %IDSmeta%
 		if (ErrorLevel) ;если ошибка, пробуем ещё разок
 		{
-			if (cou1>20)
+			ToolTip, Попытка %cou1%
+			if (cou1>30)
 			{
 				ToolTip
 				MsgBox, ErrorControlSend ExportSmetabCADtoExcel
 				ExitApp
 			}
-			Sleep, 1000
+			Sleep, 500
 			cou1++
 			WinGetTitle, out1, ahk_id %IDSmeta%
 			WinGetTitle, out2, A
@@ -260,7 +271,7 @@ PovtorControlSend:
 		}
 		Send, {Space}
 	}
-	ToolTip
+	ToolTip, Ждём окно Excel
 	
 	SetTitleMatchMode, 2
 	WinWait,%ExcelWindowName%,,%waittimewindow1%
@@ -268,7 +279,7 @@ PovtorControlSend:
 	{
 		MsgBox, Скрипт не дождался окна %titleWindowWait%. Попробуйте дождаться его и переключиться вручную. После этого нажмите кнопку "Ок"
 	}
-	
+	ToolTip
 	;WinWaitActive,%ExcelWindowName%,,waittimewindow1
 	WinWaitActive,%ExcelWindowName%,,%waittimewindow1%
 	if (ErrorLevel)
@@ -289,10 +300,10 @@ PovtorControlSend:
 	controlNeed:="WindowsForms10.BUTTON.app.0.33c0d9d4" ;закрываем смету
 	ControlFocus, %controlNeed%, ahk_id %IDSmeta%
 	ControlSend, %controlNeed%, {Space}, ahk_id %IDSmeta%
-	Sleep, 1000
+	Sleep, 200
 	;Send, {Space}
 	ControlSend, %controlNeed%, {Enter}, %titleWindowWait%
-	Sleep, 1000
+	Sleep, 200
 	WinWaitClose, %titleWindowWait%,,%waittimewindow1%
 	if (ErrorLevel)
 	{
@@ -541,3 +552,8 @@ else
 {
 	MsgBox, bCAD не запущен. Программа завершена
 }
+ExitApp
+
+RemoveToolTip:
+ToolTip
+return
