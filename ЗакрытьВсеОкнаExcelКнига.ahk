@@ -36,11 +36,14 @@
 		ToolTip, Закрываем %this_title%
 		;WinClose, %this_title%
 		WinActivate, ahk_id %this_id%
-		Sleep, 100
+		Sleep, 400 
 		PostMessage, 0x0112, 0xF060,,, %this_title%
 		Sleep, 100
 		ControlSend,,{Right},ahk_id %this_id%
 		ControlSend,,{Space},ahk_id %this_id%
+		WinWaitClose, ahk_id %this_id%,,3
+		If (ErrorLevel)
+			ToolTip, Не удалось закрыть автоматически
 		Sleep, 100
 		;IDChild:=WinExist("ahk_class NetUIHWND")
 		;~ MsgBox, IDChild %IDChild%
@@ -48,7 +51,10 @@
 		;~ WinGetTitle, Title, ahk_id %hParent%
 		;~ MsgBox, %Title%
 	}
-		
+	
+	ToolTip, Всё закрыли
+	Sleep, 1000
+	ToolTip
 		
 ExitApp
 
